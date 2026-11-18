@@ -1,0 +1,32 @@
+PACOTE DE MELHORIAS - 08/10/2026 (versao corrigida)
+
+Pasta de destino: C:\Sistema_Fardamento_Instalacao\app\   (a que contem app_gui.py, app\, gui\, assets\)
+Copie respeitando as subpastas e clique em Substituir quando pedir.
+
+SUBSTITUIR:
+  gui\produtos_frame.py
+  gui\cadastro_frame.py
+  gui\configuracoes_sistema_frame.py
+  app\services\termo_responsabilidade.py
+  requirements.txt
+  assets\icone_sistema.png  e  assets\icone_sistema.ico
+
+ARQUIVOS NOVOS (so copiar):
+  app\services\importacao_planilha.py   <- o arquivo que estava faltando (logica da importacao)
+  app\modelos_importacao.py             <- gera as planilhas modelo
+  app\term_config.py
+  gui\importacao_dialog.py              <- janela de importacao com previa
+  MANUAL_DE_INSTRUCOES.md
+  modelos_planilha\  (opcional: copias dos modelos prontas para enviar a alguem)
+
+NAO substitua nem apague: .env, ca.pem, banco de dados.
+
+DEPOIS, no PowerShell, dentro de C:\Sistema_Fardamento_Instalacao\app :
+  python -m pip install -r requirements.txt
+  python app_gui.py
+
+COMO USAR: Cadastro e Configuracao > Configuracoes do Sistema
+  - "Baixar modelo de planilha": escolha Categorias, Funcionarios ou Fornecedores.
+  - "Importar planilha...": escolha o tipo e o arquivo (.xlsx ou .csv). O sistema mostra
+    uma previa (novos, duplicados, rejeitados) e so grava depois que voce confirmar.
+  - Preencha a aba "Dados" do modelo. A aba "Instrucoes" e ignorada na importacao.

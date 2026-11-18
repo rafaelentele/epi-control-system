@@ -1,0 +1,21 @@
+VERSÃO PREPARADA PARA GERAR O EXECUTÁVEL
+
+Esta pasta foi preparada a partir da versão atual do Sistema Fardamento com Aiven MySQL.
+
+IMPORTANTE:
+- O arquivo .env original NÃO foi incluído para não distribuir a senha do Aiven.
+- O ca.pem foi incluído.
+- O banco Aiven não é alterado por este pacote.
+- A pasta app contém o código atual.
+
+PRÓXIMO PASSO:
+1. No computador de desenvolvimento, copie o arquivo .env.example para .env dentro de app.
+2. Preencha DB_PASSWORD com a senha atual do Aiven.
+3. Teste o sistema normalmente.
+4. Execute GERAR_EXE.bat.
+5. O executável aparecerá em dist\Sistema_Fardamento.exe.
+
+Depois de gerar o EXE, ele deverá ser testado neste computador antes de ser instalado no segundo computador.
+
+OBSERVAÇÃO:
+O EXE é gerado no Windows. Este ambiente não possui PyInstaller/Windows bootloader, então não foi inventado um EXE que não foi realmente testado.
