@@ -25,5 +25,5 @@ O **EpiControl** resolve essa dor real de negócio automatizando o fluxo complet
 ## 🗄️ Modelagem do Banco de Dados (DER)
 O sistema utiliza um banco de dados relacional **SQLite** estruturado com chaves estrangeiras para garantir a integridade referencial entre usuários, fornecedores, produtos e movimentações:
 
-![Diagrama Entidade Relacionamento](./assets/der-fardamento.png)
+![Diagrama Entidade Relacionamento](der-fardamento.png)
 
