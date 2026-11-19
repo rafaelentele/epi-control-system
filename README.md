@@ -27,3 +27,23 @@ O sistema utiliza um banco de dados relacional **SQLite** estruturado com chaves
 
 ![Diagrama Entidade Relacionamento](der-fardamento.png)
 
+
+## ▶️ Como Executar o Projeto
+
+1. **Clone o repositório:**
+   ```bash
+   git clone https://github.com/rafaelentele/epi-control-system.git
+   cd epi-control-system
+   ```
+
+2. **Verifique o ambiente Python:**
+   Certifique-se de ter o **Python 3.x** instalado na máquina. Caso utilize dependências externas, instale-as antes de iniciar.
+
+3. **Inicie a aplicação:**
+   ```bash
+   python app_gui.py
+   ```
+   *(Caso o ponto de entrada principal do seu sistema seja o menu, utilize `python menu.py`).*
+
+4. **Banco de dados:**
+   O banco **SQLite** é gerado e gerenciado localmente pela aplicação (`database.py`), preservando a segurança dos dados.
