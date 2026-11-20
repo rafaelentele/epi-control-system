@@ -1,5 +1,7 @@
 # Epi Control
 
+![Logo do Epi Control](app/assets/logo_horizontal.png)
+
 Aplicativo desktop independente para controle de EPI e fardamento em Windows. O armazenamento da aplicação usa SQLite local; não há configuração de banco remoto.
 
 ## Funcionalidades
@@ -11,6 +13,144 @@ Aplicativo desktop independente para controle de EPI e fardamento em Windows. O 
 - Relatórios e histórico de operações.
 - Geração de termos de responsabilidade em PDF.
 - Importação de cadastros por planilhas Excel ou CSV e geração de modelos de importação.
+
+## Modelo de dados
+
+O esquema abaixo representa as 15 tabelas definidas pelos modelos SQLAlchemy do aplicativo. Ele mostra a estrutura, sem registros reais ou dados pessoais. O diagrama antigo de referência não foi reutilizado porque continha campos que não existem no esquema atual.
+
+```mermaid
+erDiagram
+    EMPRESA o|--o{ FUNCIONARIO : possui
+    CATEGORIA o|--o{ PRODUTOS : classifica
+    SETOR_LOJA o|--o{ PRODUTOS : padrao
+    SETOR_LOJA o|--o{ PEDIDO_SAIDA : destino
+    FUNCIONARIO o|--o{ PEDIDO_SAIDA : recebe
+    USUARIO o|--o{ PEDIDO_SAIDA : registra
+    USUARIO ||--o{ USUARIO_PERMISSAO : possui
+    USUARIO o|--o{ AUDITORIA : gera
+    USUARIO o|--o{ PRODUTOS : cadastra
+    USUARIO o|--o{ ENTRADA : registra
+    USUARIO ||--o{ AJUSTE_ESTOQUE : registra
+    FORNECEDOR o|--o{ PEDIDO_DE_COMPRA : fornece
+    PRODUTOS o|--o{ PEDIDO_DE_COMPRA : solicitado
+    PRODUTOS o|--o{ ENTRADA : recebido
+    PEDIDO_DE_COMPRA o|--o{ ENTRADA : atendido_por
+    FORNECEDOR o|--o{ ENTRADA : origem
+    PRODUTOS o|--o{ SAIDA : movimentado
+    PEDIDO_SAIDA ||--o{ SAIDA : contem
+    TAMANHO o|--o{ ENTRADA : especifica
+    TAMANHO o|--o{ SAIDA : especifica
+    PRODUTOS ||--o{ AJUSTE_ESTOQUE : ajustado
+    TAMANHO ||--o{ AJUSTE_ESTOQUE : especifica
+
+    EMPRESA {
+        int id_empresa PK
+        string razao_social
+        string cnpj
+    }
+    FUNCIONARIO {
+        int id_funcionario PK
+        string nome
+        string cpf
+        int id_empresa FK
+    }
+    USUARIO {
+        int id_usuario PK
+        string nome
+        string login UK
+        string nivel_acesso
+        string password_hash
+    }
+    USUARIO_PERMISSAO {
+        int id_usuario PK, FK
+        string permissao PK
+    }
+    AUDITORIA {
+        int id_auditoria PK
+        int id_usuario FK
+        datetime data_hora
+        string operacao
+        string entidade
+        int id_registro
+        string descricao
+    }
+    CATEGORIA {
+        int id_categoria PK
+        string nome UK
+    }
+    SETOR_LOJA {
+        int id_setor_loja PK
+        string nome
+    }
+    TAMANHO {
+        int id_tamanho PK
+        string nome UK
+    }
+    FORNECEDOR {
+        int id_fornecedor PK
+        string nome
+        string contato
+    }
+    PRODUTOS {
+        int id_produto PK
+        string nome
+        int id_categoria FK
+        int id_setor_padrao FK
+        string descricao
+        string ca
+        int estoque_minimo
+        int id_usuario FK
+    }
+    PEDIDO_DE_COMPRA {
+        int id_pedido_compra PK
+        int id_produto FK
+        int quantidade
+        decimal preco
+        date data_compra
+        int id_fornecedor FK
+        string observacao
+    }
+    ENTRADA {
+        int id_entrada PK
+        int id_produto FK
+        int id_pedido_compra FK
+        int quantidade
+        int id_tamanho FK
+        date data_entrada
+        int id_fornecedor FK
+        int id_usuario FK
+        string observacao
+    }
+    PEDIDO_SAIDA {
+        int id_pedido_saida PK
+        int id_funcionario FK
+        int id_setor_loja FK
+        int id_usuario FK
+        date data_saida
+        string observacao
+    }
+    SAIDA {
+        int id_saida PK
+        int id_pedido_saida FK
+        int id_produto FK
+        int id_tamanho FK
+        int quantidade
+    }
+    AJUSTE_ESTOQUE {
+        int id_ajuste PK
+        int id_produto FK
+        int id_tamanho FK
+        int quantidade_ajuste
+        int estoque_anterior
+        int estoque_posterior
+        string motivo
+        string observacao
+        int id_usuario FK
+        datetime data_ajuste
+    }
+```
+
+`importacao_historica` não aparece porque não faz parte dos modelos ORM usados para criar o banco SQLite novo. O script histórico que contém essa tabela é separado do esquema principal.
 
 ## Requisitos para executar pelo código-fonte
 
@@ -66,4 +206,4 @@ Para distribuir o instalador, use um release do GitHub em vez de adicioná-lo ao
 
 `app/configuracoes_sistema.json` guarda configurações locais dos modelos e do logotipo dos termos. Esse arquivo não deve ser publicado; o aplicativo usa valores padrão quando ele não existe. Bancos SQLite, credenciais de demonstração, PDFs gerados, certificados e arquivos de build também estão excluídos pelo `.gitignore`.
 
-O repositório ainda não tem uma licença definida. Defina a licença e revise os dados de contato embutidos no aplicativo antes de abrir a publicação para terceiros.
+O projeto é publicado sem arquivo de licença, por opção do autor. Os dados de contato mostrados na tela Sobre e nos metadados do instalador são públicos neste repositório.
