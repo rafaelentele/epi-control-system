@@ -182,7 +182,7 @@ class SaidaFrame(ttk.Frame):
         botoes_lista = ttk.Frame(frame_lista)
         botoes_lista.pack(side="bottom", fill="x", pady=(6, 0))
         ttk.Button(botoes_lista, text="Excluir pedido selecionado", command=self.excluir_pedido).pack(side="left")
-        ttk.Label(botoes_lista, text="Clique em um pedido para ver os detalhes.", foreground="#666").pack(side="left", padx=14)
+        ttk.Label(botoes_lista, text="Dê duplo clique em um pedido para ver os detalhes.", foreground="#666").pack(side="left", padx=14)
 
         colunas = ("id", "funcionario", "setor", "data", "usuario", "itens")
         self.tree_pedidos = TreeviewBusca(frame_lista, columns=colunas, show="headings", height=10)
@@ -195,7 +195,7 @@ class SaidaFrame(ttk.Frame):
         self.tree_pedidos.pack(side="top", fill="both", expand=True)
         adicionar_pesquisa(self.tree_pedidos)
         self.tree_pedidos.bind("<<TreeviewSelect>>", self._ao_selecionar_pedido)
-        self.tree_pedidos.bind("<ButtonRelease-1>", self._ao_clicar_pedido)
+        self.tree_pedidos.bind("<Double-1>", self._ao_clicar_pedido)
         self.tree_pedidos.bind("<Return>", self._ao_enter_pedido)
 
     # ------------------------------------------------------------
@@ -420,7 +420,7 @@ class SaidaFrame(ttk.Frame):
         self.pedido_selecionado_id = int(self.tree_pedidos.item(selecionado[0], "values")[0])
 
     def _ao_clicar_pedido(self, evento):
-        """Clique numa linha da lista abre o popup do pedido (clique no título só ordena)."""
+        """Duplo clique numa linha abre o popup do pedido (título não abre pedido)."""
         if self.tree_pedidos.identify_region(evento.x, evento.y) != "cell":
             return
         linha = self.tree_pedidos.identify_row(evento.y)

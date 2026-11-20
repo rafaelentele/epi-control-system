@@ -1,5 +1,5 @@
 """
-Menu interativo do Sistema de Controle de Fardamento.
+Menu interativo do Epi Control.
 Rode com: python menu.py
 
 Um menu de texto simples, com submenus pra cada tabela. Serve como
@@ -7,6 +7,7 @@ primeira "cara" do sistema, antes de pensar numa interface gráfica.
 """
 
 from datetime import date, datetime
+from getpass import getpass
 
 from app.repositories.crud_simple import (
     criar_categoria, listar_categorias, atualizar_categoria, excluir_categoria,
@@ -36,6 +37,13 @@ from app.repositories.relatorios import (
 )
 from app.repositories.crud_usuario import (
     criar_usuario, listar_usuarios, atualizar_usuario, excluir_usuario, NIVEIS_VALIDOS,
+)
+from app.auth import (
+    garantir_estrutura_autenticacao,
+    precisa_configurar_administrador,
+    criar_primeiro_administrador,
+    autenticar,
+    definir_usuario_atual,
 )
 
 
@@ -553,7 +561,7 @@ def menu_configuracoes():
         print("\n--- Configurações: Usuários e Permissões ---")
         print("1. Listar usuários")
         print("2. Cadastrar usuário")
-        print("3. Editar usuário (nome/permissão)")
+        print("3. Editar usuário (nome/login/senha/permissão)")
         print("4. Excluir usuário")
         print("0. Voltar")
         opcao = input("Escolha: ").strip()
@@ -569,36 +577,51 @@ def menu_configuracoes():
         elif opcao == "2":
             nome = ler_texto("Nome completo: ")
             login = ler_texto("Login (único, sem espaço): ")
+            senha = getpass("Senha (mínimo 8 caracteres, letras e números): ")
             print(f"Permissões disponíveis: {', '.join(NIVEIS_VALIDOS)}")
             nivel = ler_texto("Permissão (Enter para 'Operador'): ", opcional=True) or "Operador"
             if nivel not in NIVEIS_VALIDOS:
                 print(f"Permissão inválida, usando 'Operador'. (opções válidas: {', '.join(NIVEIS_VALIDOS)})")
                 nivel = "Operador"
             try:
-                novo = criar_usuario(nome, login, nivel)
+                novo = criar_usuario(nome, login, nivel, senha)
                 print(f"Cadastrado! id={novo.id_usuario}")
-            except ValueError as e:
+            except Exception as e:
                 print(f"Erro: {e}")
             pausar()
 
         elif opcao == "3":
             id_usuario = ler_int("Id do usuário para editar: ")
             nome = ler_texto("Novo nome (Enter para manter): ", opcional=True)
+            login_novo = ler_texto("Novo login (Enter para manter): ", opcional=True)
+            senha_nova = getpass("Nova senha (Enter para manter): ")
             print(f"Permissões disponíveis: {', '.join(NIVEIS_VALIDOS)}")
             nivel = ler_texto("Nova permissão (Enter para manter): ", opcional=True)
             if nivel is not None and nivel not in NIVEIS_VALIDOS:
                 print(f"Permissão inválida, mantendo a anterior. (opções válidas: {', '.join(NIVEIS_VALIDOS)})")
                 nivel = None
-            resultado = atualizar_usuario(id_usuario, nome=nome, nivel_acesso=nivel)
-            print("Atualizado!" if resultado else "Id não encontrado.")
+            try:
+                resultado = atualizar_usuario(
+                    id_usuario,
+                    nome=nome,
+                    login=login_novo,
+                    nivel_acesso=nivel,
+                    senha=senha_nova or None,
+                )
+                print("Atualizado!" if resultado else "Id não encontrado.")
+            except Exception as e:
+                print(f"Erro: {e}")
             pausar()
 
         elif opcao == "4":
             id_usuario = ler_int("Id do usuário para excluir: ")
             confirmar = input("Confirma exclusão? (s/n): ").strip().lower()
             if confirmar == "s":
-                sucesso = excluir_usuario(id_usuario)
-                print("Excluído!" if sucesso else "Id não encontrado.")
+                try:
+                    sucesso = excluir_usuario(id_usuario)
+                    print("Excluído!" if sucesso else "Id não encontrado.")
+                except Exception as e:
+                    print(f"Erro: {e}")
             pausar()
 
         elif opcao == "0":
@@ -611,8 +634,28 @@ def menu_configuracoes():
 # Menu principal
 # ------------------------------------------------------------
 def main():
+    try:
+        garantir_estrutura_autenticacao()
+        if precisa_configurar_administrador():
+            print("\nPrimeiro acesso: crie o administrador do Epi Control.")
+            nome = input("Nome: ").strip()
+            login = input("Login: ").strip()
+            senha = getpass("Senha (mínimo 8 caracteres, letras e números): ")
+            confirmacao = getpass("Confirme a senha: ")
+            criar_primeiro_administrador(nome, login, senha, confirmacao)
+        login = input("Login: ").strip()
+        senha = getpass("Senha: ")
+        usuario = autenticar(login, senha)
+        if usuario is None:
+            print("Login ou senha inválidos. Encerrando.")
+            return
+        definir_usuario_atual(usuario)
+    except (ValueError, PermissionError) as e:
+        print(f"Não foi possível iniciar: {e}")
+        return
+
     while True:
-        print("\n===== SISTEMA DE CONTROLE DE FARDAMENTO =====")
+        print("\n===== EPI CONTROL =====")
         print("1. Categorias")
         print("2. Fornecedores")
         print("3. Tamanhos")

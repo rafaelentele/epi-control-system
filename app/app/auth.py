@@ -46,14 +46,51 @@ PERMISSOES_OPERADOR_PADRAO = {
 }
 
 USUARIO_ATUAL = None
+SENHA_MIN_CARACTERES = 8
 
 
 def _hash_senha(senha, salt=None):
+    if not senha:
+        raise ValueError("A senha é obrigatória.")
     salt = salt or secrets.token_hex(16)
     digest = hashlib.pbkdf2_hmac(
         "sha256", senha.encode("utf-8"), salt.encode("utf-8"), 200_000
     ).hex()
     return f"pbkdf2_sha256$200000${salt}${digest}"
+
+
+def validar_senha(senha):
+    if len(senha or "") < SENHA_MIN_CARACTERES or not any(c.isalpha() for c in senha) or not any(c.isdigit() for c in senha):
+        raise ValueError(f"A senha deve ter pelo menos {SENHA_MIN_CARACTERES} caracteres e conter letras e números.")
+
+
+def criar_primeiro_administrador(nome, login, senha, confirmacao):
+    """Cria o administrador inicial somente quando o banco ainda não tem usuários."""
+    nome, login = (nome or "").strip(), (login or "").strip()
+    if not nome or not login:
+        raise ValueError("Informe nome e login.")
+    validar_senha(senha)
+    if senha != confirmacao:
+        raise ValueError("A confirmação da senha não confere.")
+    iniciar_esquema()
+    from sqlalchemy.exc import IntegrityError
+    session = get_session()
+    try:
+        # Serializa tentativas simultâneas de primeiro acesso antes da checagem.
+        session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+        if session.query(Usuario).count():
+            raise ValueError("A configuração inicial já foi concluída.")
+        usuario = Usuario(nome=nome, login=login, nivel_acesso="Administrador", password_hash=_hash_senha(senha))
+        session.add(usuario)
+        session.flush()
+        session.add_all(UsuarioPermissao(id_usuario=usuario.id_usuario, permissao=p) for p in PERMISSOES)
+        session.commit()
+        return usuario.id_usuario
+    except IntegrityError as exc:
+        session.rollback()
+        raise ValueError("Não foi possível criar o administrador; verifique se o login já existe.") from exc
+    finally:
+        session.close()
 
 
 def verificar_senha(senha, armazenada):
@@ -72,12 +109,7 @@ def verificar_senha(senha, armazenada):
 
 
 def garantir_estrutura_autenticacao():
-    """Garante senha/permissoes no banco sem apagar dados existentes.
-
-    Tambem inicializa usuarios antigos com a senha temporaria 123456 e
-    permissao padrao de operador quando ainda nao houver permissoes salvas.
-    No SQLite vazio, cria o administrador padrao (login admin / senha 123456).
-    """
+    """Prepara tabelas e colunas de autenticação sem criar credenciais."""
     iniciar_esquema()
     insp = inspect(engine)
     insert_permissao = (
@@ -97,30 +129,9 @@ def garantir_estrutura_autenticacao():
                 text("ALTER TABLE usuario ADD COLUMN password_hash VARCHAR(255) NULL")
             )
 
-        usuarios = conn.execute(
-            text("SELECT id_usuario, nivel_acesso, password_hash FROM usuario")
-        ).mappings().all()
-
-        if not usuarios:
-            conn.execute(
-                text(
-                    "INSERT INTO usuario (nome, login, nivel_acesso, password_hash) "
-                    "VALUES (:nome, :login, :nivel, :senha)"
-                ),
-                {
-                    "nome": "Administrador",
-                    "login": "admin",
-                    "nivel": "Administrador",
-                    "senha": _hash_senha("123456"),
-                },
-            )
-            id_admin = conn.execute(
-                text("SELECT id_usuario FROM usuario WHERE login = :login"),
-                {"login": "admin"},
-            ).scalar_one()
-            for p in PERMISSOES:
-                conn.execute(text(insert_permissao), {"id": id_admin, "p": p})
-            return
+        usuarios = conn.execute(text(
+            "SELECT id_usuario, nivel_acesso, password_hash FROM usuario"
+        )).mappings().all()
 
         for u in usuarios:
             # Nova permissão: administradores existentes recebem acesso ao cadastro de empresas.
@@ -132,11 +143,7 @@ def garantir_estrutura_autenticacao():
                     {"id": u["id_usuario"], "p": "gerenciar_empresas"},
                 )
 
-            if not u["password_hash"]:
-                conn.execute(
-                    text("UPDATE usuario SET password_hash=:senha WHERE id_usuario=:id"),
-                    {"senha": _hash_senha("123456"), "id": u["id_usuario"]},
-                )
+            # Contas antigas sem hash permanecem sem acesso até receberem senha própria.
 
             qtd = conn.execute(
                 text("SELECT COUNT(*) FROM usuario_permissao WHERE id_usuario=:id"),
@@ -174,6 +181,15 @@ def autenticar(login, senha):
         session.close()
 
 
+def precisa_configurar_administrador():
+    iniciar_esquema()
+    session = get_session()
+    try:
+        return session.query(Usuario).count() == 0
+    finally:
+        session.close()
+
+
 def definir_usuario_atual(usuario):
     global USUARIO_ATUAL
     USUARIO_ATUAL = usuario
@@ -186,6 +202,8 @@ def obter_usuario_atual():
 def tem_permissao(permissao):
     if USUARIO_ATUAL is None:
         return False
+    if permissao == "gerenciar_usuarios":
+        return USUARIO_ATUAL.get("nivel_acesso") == "Administrador"
     if USUARIO_ATUAL.get("nivel_acesso") == "Administrador":
         return True
     return permissao in USUARIO_ATUAL.get("permissoes", set())
@@ -219,7 +237,7 @@ class LoginApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.resultado = None
-        self.title("Acesso - Sistema de Controle de Fardamento")
+        self.title("Acesso - Epi Control")
         try:
             self.iconbitmap(str(asset_path("icone_sistema.ico")))
         except Exception:
@@ -289,7 +307,62 @@ class LoginApp(tk.Tk):
         self.destroy()
 
 
+class ConfiguracaoInicialApp(tk.Tk):
+    """Formulário executado uma vez para criar as credenciais administrativas."""
+    def __init__(self):
+        super().__init__()
+        self.resultado = False
+        self.title("Configuração inicial - Epi Control")
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        frame = ttk.Frame(self, padding=24)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text="Crie o primeiro administrador", font=("TkDefaultFont", 12, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 12))
+        self.nome = self._campo(frame, 1, "Nome:")
+        self.login = self._campo(frame, 2, "Login:")
+        self.senha = self._campo(frame, 3, "Senha:", senha=True)
+        self.confirmacao = self._campo(frame, 4, "Confirme a senha:", senha=True)
+        ttk.Label(frame, text=f"Use pelo menos {SENHA_MIN_CARACTERES} caracteres, com letras e números.").grid(row=5, column=0, columnspan=2, sticky="w", pady=6)
+        self.mensagem = ttk.Label(frame, text="")
+        self.mensagem.grid(row=6, column=0, columnspan=2, sticky="w", pady=4)
+        ttk.Button(frame, text="Criar administrador", command=self._criar).grid(row=7, column=0, pady=(10, 0), sticky="w")
+        ttk.Button(frame, text="Sair", command=self.destroy).grid(row=7, column=1, pady=(10, 0), sticky="e")
+        self.bind("<Return>", lambda _e: self._criar())
+        self.nome.focus_set()
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() - self.winfo_reqwidth()) // 2
+        y = (self.winfo_screenheight() - self.winfo_reqheight()) // 2
+        self.geometry(f"+{x}+{y}")
+
+    @staticmethod
+    def _campo(parent, row, rotulo, senha=False):
+        ttk.Label(parent, text=rotulo).grid(row=row, column=0, sticky="w", pady=5)
+        campo = ttk.Entry(parent, width=34, show="*" if senha else "")
+        campo.grid(row=row, column=1, pady=5)
+        return campo
+
+    def _criar(self):
+        try:
+            criar_primeiro_administrador(
+                self.nome.get(), self.login.get(), self.senha.get(), self.confirmacao.get()
+            )
+        except ValueError as exc:
+            self.mensagem.configure(text=str(exc), foreground="firebrick")
+            return
+        except Exception as exc:
+            messagebox.showerror("Erro", "Não foi possível criar o administrador.\n\n" + str(exc), parent=self)
+            return
+        self.resultado = True
+        messagebox.showinfo("Configuração concluída", "Administrador criado. Entre usando o login e a senha escolhidos.", parent=self)
+        self.destroy()
+
+
 def abrir_login():
+    if precisa_configurar_administrador():
+        configuracao = ConfiguracaoInicialApp()
+        configuracao.mainloop()
+        if not configuracao.resultado:
+            return None
     janela = LoginApp()
     janela.mainloop()
     return janela.resultado

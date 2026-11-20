@@ -369,17 +369,56 @@ tr.linha-fisico {{ break-after: auto; }}
         combo=ttk.Combobox(topo,state="readonly",width=20,values=["(todos)","CRIAÇÃO","ALTERAÇÃO","EXCLUSÃO","ENTRADA","BAIXA","AJUSTE"])
         combo.current(0); combo.pack(side="left",padx=(4,10))
         tree=_criar_tabela(aba,[("data","Data/Hora",145),("usuario","Usuário",130),("operacao","Operação",90),("entidade","Entidade",130),("registro","Registro #",80),("descricao","Descrição",520)],altura=18)
+        cache_registros = {}
         def carregar():
             for linha in tree.get_children(): tree.delete(linha)
+            cache_registros.clear()
             tipo=None if combo.get()=="(todos)" else combo.get()
             registros=historico_operacoes(limite=500,operacao=tipo)
             if not registros:
                 tree.insert("","end",values=("","","","","","Nenhuma operação registrada.")); return
             for r in registros:
-                tree.insert("","end",values=(r.data_hora.strftime("%d/%m/%Y %H:%M:%S") if r.data_hora else "",r.usuario.nome if r.usuario else "Sistema/Desconhecido",r.operacao,r.entidade,r.id_registro or "",r.descricao))
+                iid = tree.insert("","end",values=(r.data_hora.strftime("%d/%m/%Y %H:%M:%S") if r.data_hora else "",r.usuario.nome if r.usuario else "Sistema/Desconhecido",r.operacao,r.entidade,r.id_registro or "",r.descricao))
+                cache_registros[iid] = r
+        def abrir_detalhes(event):
+            iid = tree.identify_row(event.y)
+            registro = cache_registros.get(iid)
+            if registro is not None:
+                self._mostrar_detalhe_operacao(aba, registro)
+        tree.bind("<Double-1>", abrir_detalhes)
         ttk.Button(topo,text="Atualizar",command=carregar).pack(side="left")
-        ttk.Label(aba,text="O histórico registra operações realizadas após a implantação da auditoria.").pack(anchor="w",pady=(8,0))
+        ttk.Label(aba,text="Dê duplo clique em uma operação para ver os detalhes. O histórico registra operações realizadas após a implantação da auditoria.").pack(anchor="w",pady=(8,0))
         carregar(); return aba
+
+    def _mostrar_detalhe_operacao(self, parent, registro):
+        """Mostra todos os campos da operação selecionada no histórico."""
+        dialogo = tk.Toplevel(parent.winfo_toplevel())
+        dialogo.title(f"Detalhes da operação #{registro.id_auditoria}")
+        dialogo.transient(parent.winfo_toplevel())
+        dialogo.minsize(520, 300)
+        corpo = ttk.Frame(dialogo, padding=14)
+        corpo.pack(fill="both", expand=True)
+        usuario = registro.usuario.nome if registro.usuario else "Sistema/Desconhecido"
+        data_hora = registro.data_hora.strftime("%d/%m/%Y %H:%M:%S") if registro.data_hora else "-"
+        campos = [
+            ("Data/Hora:", data_hora),
+            ("Usuário:", usuario),
+            ("Operação:", registro.operacao or "-"),
+            ("Entidade:", registro.entidade or "-"),
+            ("Registro:", str(registro.id_registro) if registro.id_registro is not None else "-"),
+        ]
+        for linha, (rotulo, valor) in enumerate(campos):
+            ttk.Label(corpo, text=rotulo, font=("TkDefaultFont", 9, "bold")).grid(row=linha, column=0, sticky="nw", padx=(0, 10), pady=3)
+            ttk.Label(corpo, text=valor, wraplength=410, justify="left").grid(row=linha, column=1, sticky="w", pady=3)
+        ttk.Label(corpo, text="Descrição:", font=("TkDefaultFont", 9, "bold")).grid(row=len(campos), column=0, sticky="nw", padx=(0, 10), pady=(8, 3))
+        descricao = tk.Text(corpo, height=7, wrap="word")
+        descricao.insert("1.0", registro.descricao or "-")
+        descricao.configure(state="disabled")
+        descricao.grid(row=len(campos), column=1, sticky="nsew", pady=(8, 3))
+        corpo.columnconfigure(1, weight=1)
+        corpo.rowconfigure(len(campos), weight=1)
+        ttk.Button(corpo, text="Fechar", command=dialogo.destroy).grid(row=len(campos) + 1, column=1, sticky="e", pady=(10, 0))
+        dialogo.bind("<Escape>", lambda _evento: dialogo.destroy())
 
     def _aba_listagem_geral(self, parent):
         aba = ttk.Frame(parent, padding=10)

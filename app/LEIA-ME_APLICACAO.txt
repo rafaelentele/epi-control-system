@@ -1,0 +1,13 @@
+EPI CONTROL — APLICATIVO LOCAL
+
+Execute app_gui.py no Windows ou use o executável de validação gerado pelo
+GERAR_EXE.bat. No primeiro início, informe nome, login, senha e confirmação para
+criar o primeiro administrador. A senha precisa ter 8 caracteres ou mais e
+conter letras e números. Não existe login ou senha padrão.
+
+O banco SQLite e as tabelas são criados automaticamente em:
+  %LOCALAPPDATA%\EPIControl\data\epicontrol.db
+
+Instale as dependências listadas em requirements.txt antes de iniciar pelo
+código-fonte. Não copie bancos, arquivos .env ou certificados de instalações
+anteriores para o pacote independente.

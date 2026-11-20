@@ -1,0 +1,43 @@
+# Python caches and local tooling
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local credentials, application settings, and databases
+.env
+.env.*
+!.env.example
+app/configuracoes_sistema.json
+*.db
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# Generated test output
+test_data/*.pdf
+
+# PyInstaller, installer, and release output
+build/
+build*/
+dist/
+dist_*/
+dist_instalacao/
+dist_instalador/
+
+# Local backups
+backup*/
+migration_backup*/
+backup_preparacao_*.zip
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -18,6 +18,8 @@ from tkinter import ttk, messagebox
 from app.branding import asset_path
 from app.repositories.relatorios import estoque_pivot
 from app.auth import abrir_login, garantir_estrutura_autenticacao, tem_permissao, obter_usuario_atual
+from gui.ajuda_dialog import abrir_manual
+from gui.sobre_dialog import abrir_sobre
 from gui.cadastro_frame import CadastroConfiguracaoFrame
 from gui.pedido_compra_frame import PedidoCompraFrame
 from gui.movimentacao_frame import MovimentacaoFrame
@@ -102,7 +104,7 @@ ATALHOS_INICIO = [
     ("status", "Status do Estoque"),
 ]
 
-TITULO_BASE = "Sistema de Controle de Fardamento"
+TITULO_BASE = "Epi Control"
 
 
 class App(tk.Tk):
@@ -264,6 +266,14 @@ class App(tk.Tk):
             self._atualizar_estado_menu(menu, indices)
             botao.pack(side="left", padx=(0, 5))
             self.botoes_menu[nome] = botao
+
+        botao_ajuda = ttk.Menubutton(self.barra_navegacao, text="Ajuda", direction="below")
+        menu_ajuda = tk.Menu(botao_ajuda, tearoff=False)
+        menu_ajuda.add_command(label="Manual de instruções", command=lambda: abrir_manual(self))
+        menu_ajuda.add_command(label="Sobre o Epi Control", command=lambda: abrir_sobre(self))
+        botao_ajuda.configure(menu=menu_ajuda)
+        botao_ajuda.pack(side="left", padx=(0, 5))
+        self.botoes_menu["Ajuda"] = botao_ajuda
 
         self._preencher_atalhos_inicio()
 
