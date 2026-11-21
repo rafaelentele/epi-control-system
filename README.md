@@ -2,7 +2,27 @@
 
 ![Logo do Epi Control](app/assets/logo_horizontal.png)
 
-Aplicativo desktop independente para controle de EPI e fardamento em Windows. O armazenamento da aplicação usa SQLite local; não há configuração de banco remoto.
+Aplicativo desktop independente para controle de EPI e fardamento em Windows, desenvolvido a partir da identificação de necessidades operacionais e da aplicação de tecnologia para otimização de processos de gestão.
+
+O projeto utiliza SQLite como banco de dados local, sem necessidade de configuração de banco remoto. Seu desenvolvimento contou com o apoio de Inteligência Artificial (ChatGPT) na geração e evolução do código, sob condução do idealizador, responsável pela definição dos requisitos, estruturação das informações, orientação das funcionalidades e validação da aplicação.
+
+## Processo de desenvolvimento e utilização de IA
+
+O EPI Control foi concebido e conduzido a partir da identificação de necessidades reais relacionadas à gestão e ao controle de Equipamentos de Proteção Individual.
+
+O desenvolvimento contou com o uso de Inteligência Artificial (ChatGPT) como ferramenta de apoio à programação, geração e evolução do código-fonte.
+
+A condução do projeto envolveu:
+
+- Definição dos objetivos e requisitos funcionais da aplicação.
+- Organização das informações, processos e regras de negócio.
+- Criação manual da estrutura inicial do banco de dados utilizando MySQL, incluindo tabelas e relacionamentos.
+- Utilização de IA como apoio à conversão e adaptação da estrutura do banco de dados para SQLite.
+- Orientação do desenvolvimento por meio de instruções detalhadas sobre funcionalidades e comportamentos esperados.
+- Realização de testes funcionais, identificação de inconsistências e solicitação de ajustes.
+- Validação das funcionalidades e evolução contínua da aplicação.
+
+A utilização de IA permitiu acelerar o processo de desenvolvimento, mantendo a condução das decisões funcionais, a organização das informações e a validação dos resultados sob responsabilidade do idealizador do projeto.
 
 ## Funcionalidades
 
